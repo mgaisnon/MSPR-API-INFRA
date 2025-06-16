@@ -64,9 +64,7 @@ services:
     networks:
       - mspr-network
   mspr-api-commandes:
-    build:
-      context: ../MSPR-API-Commandes
-      dockerfile: Dockerfile
+    image: ghcr.io/mgaisnon/mspr-api-commandes:latest
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-commandes:3306/commandes_db
     depends_on:
@@ -78,6 +76,7 @@ services:
       - "traefik.http.services.commandes.loadbalancer.server.port=8000"
     networks:
       - mspr-network
+
   mspr-db-commandes:
     image: mysql:8.0
     environment:
