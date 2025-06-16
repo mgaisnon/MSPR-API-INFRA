@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   mspr-api-infra:
     image: traefik:v2.10
@@ -9,26 +8,39 @@ services:
       - ./traefik.yml:/etc/traefik/traefik.yml
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
-      - mspr-api-clients
-      - mspr-api-produits
-      - mspr-api-commandes
+      mspr-api-clients:
+        condition: service_healthy
+      mspr-api-produits:
+        condition: service_healthy
+      mspr-api-commandes:
+        condition: service_healthy
     networks:
       - mspr-network
-
   mspr-api-clients:
-    image: ghcr.io/mgaisnon/mspr-api-clients:latest
+    build:
+      context: ../MSPR-API-Clients
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-clients:3306/clients_db
     depends_on:
-      - mspr-db-clients
-      - mspr-rabbitmq
+      mspr-db-clients:
+        condition: service_healthy
+      mspr-rabbitmq:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.clients.rule=PathPrefix(`/clients`)"
+      - "traefik.http.routers.clients.stripPrefix=/clients"
       - "traefik.http.services.clients.loadbalancer.server.port=8000"
     networks:
       - mspr-network
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   mspr-db-clients:
     image: mysql:8.0
     environment:
@@ -36,25 +48,42 @@ services:
       - MYSQL_DATABASE=clients_db
       - MYSQL_USER=user
       - MYSQL_PASSWORD=password
+    ports:
+      - "33061:3306"
     volumes:
       - clients_data:/var/lib/mysql
     networks:
       - mspr-network
-
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   mspr-api-produits:
-    image: ghcr.io/mgaisnon/mspr-api-produits:latest
+    build:
+      context: ../MSPR-API-Produits
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-produits:3306/produits_db
     depends_on:
-      - mspr-db-produits
-      - mspr-rabbitmq
+      mspr-db-produits:
+        condition: service_healthy
+      mspr-rabbitmq:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.produits.rule=PathPrefix(`/produits`)"
+      - "traefik.http.routers.produits.stripPrefix=/produits"
       - "traefik.http.services.produits.loadbalancer.server.port=8000"
     networks:
       - mspr-network
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   mspr-db-produits:
     image: mysql:8.0
     environment:
@@ -62,25 +91,42 @@ services:
       - MYSQL_DATABASE=produits_db
       - MYSQL_USER=user
       - MYSQL_PASSWORD=password
+    ports:
+      - "33062:3306"
     volumes:
       - produits_data:/var/lib/mysql
     networks:
       - mspr-network
-
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   mspr-api-commandes:
-    image: ghcr.io/mgaisnon/mspr-api-commandes:latest
+    build:
+      context: ../MSPR-API-Commandes
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-commandes:3306/commandes_db
     depends_on:
-      - mspr-db-commandes
-      - mspr-rabbitmq
+      mspr-db-commandes:
+        condition: service_healthy
+      mspr-rabbitmq:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.commandes.rule=PathPrefix(`/commandes`)"
+      - "traefik.http.routers.commandes.stripPrefix=/commandes"
       - "traefik.http.services.commandes.loadbalancer.server.port=8000"
     networks:
       - mspr-network
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   mspr-db-commandes:
     image: mysql:8.0
     environment:
@@ -88,40 +134,50 @@ services:
       - MYSQL_DATABASE=commandes_db
       - MYSQL_USER=user
       - MYSQL_PASSWORD=password
+    ports:
+      - "33063:3306"
     volumes:
       - commandes_data:/var/lib/mysql
     networks:
       - mspr-network
-
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   mspr-rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - mspr-network
-
   mspr-prometheus:
     image: prom/prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     networks:
       - mspr-network
-
   mspr-grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
     networks:
       - mspr-network
-
 networks:
   mspr-network:
     driver: bridge
-
 volumes:
   clients_data:
   produits_data:
   commandes_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
