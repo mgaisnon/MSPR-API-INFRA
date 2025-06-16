@@ -20,6 +20,4 @@ jobs:
 
       - name: Check health
         run: |
-          curl -f http://localhost:8001/docs || exit 1
-          curl -f http://localhost:8002/docs || exit 1
-          curl -f http://localhost:8003/docs || exit 1
+            curl -f http://localhost:8000/health || exit 1
