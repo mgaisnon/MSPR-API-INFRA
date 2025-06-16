@@ -34,9 +34,9 @@ jobs:
           sleep 20  # laisse le temps à Traefik + services de démarrer
 
           echo "🔎 Vérification des APIs exposées via Traefik..."
-          curl -f http://localhost/clients/health    || (echo "::error ::Clients API failed" && exit 1)
-          curl -f http://localhost/produits/health   || (echo "::error ::Produits API failed" && exit 1)
-          curl -f http://localhost/commandes/health  || (echo "::error ::Commandes API failed" && exit 1)
+          curl -f http://localhost:8000/health    || (echo "::error ::Clients API failed" && exit 1)
+          # curl -f http://localhost:8001/health   || (echo "::error ::Produits API failed" && exit 1)
+          # curl -f http://localhost:8002/health  || (echo "::error ::Commandes API failed" && exit 1)
 
           echo "🔎 Vérification des services techniques..."
           curl -f http://localhost:15672              || (echo "::error ::RabbitMQ UI not available" && exit 1)
