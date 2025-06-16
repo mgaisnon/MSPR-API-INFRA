@@ -1,0 +1,25 @@
+name: Deploy Global Stack
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout infra
+        uses: actions/checkout@v4
+
+      - name: Docker Compose up
+        run: |
+          docker compose up -d
+
+      - name: Check health
+        run: |
+          curl -f http://localhost:8001/docs || exit 1
+          curl -f http://localhost:8002/docs || exit 1
+          curl -f http://localhost:8003/docs || exit 1
