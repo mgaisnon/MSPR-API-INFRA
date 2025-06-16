@@ -15,9 +15,7 @@ services:
     networks:
       - mspr-network
   mspr-api-clients:
-    build:
-      context: ../MSPR-API-Clients
-      dockerfile: Dockerfile
+    image: ghcr.io/mgaisnon/mspr-api-clients:latest
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-clients:3306/clients_db
     depends_on:
@@ -29,6 +27,7 @@ services:
       - "traefik.http.services.clients.loadbalancer.server.port=8000"
     networks:
       - mspr-network
+
   mspr-db-clients:
     image: mysql:8.0
     environment:
