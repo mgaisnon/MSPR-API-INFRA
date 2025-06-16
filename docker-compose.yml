@@ -36,7 +36,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.produits.rule=PathPrefix(`/produits`)"
-      - "traefik.http.services.produits.loadbalancer.server.port=8000"
+      - "traefik.http.services.produits.loadbalancer.server.port=8001"
     networks: [mspr-network]
 
   mspr-api-commandes:
@@ -47,7 +47,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.commandes.rule=PathPrefix(`/commandes`)"
-      - "traefik.http.services.commandes.loadbalancer.server.port=8000"
+      - "traefik.http.services.commandes.loadbalancer.server.port=8002"
     networks: [mspr-network]
 
   # ───────────────────────── Bases MySQL ─────────────────────────
