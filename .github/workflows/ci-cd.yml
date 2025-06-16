@@ -35,7 +35,7 @@ jobs:
           sleep 30  # tu peux ajuster selon la rapidité de build
 
           echo "🔎 Vérification des APIs exposées via Traefik (port 80)..."
-          curl -f http://localhost:8000/clients/health    || (echo "::error ::Clients API failed" && exit 1)
+          curl -f http://localhost:80/clients/health    || (echo "::error ::Clients API failed" && exit 1)
           # curl -f http://localhost/produits/health   || (echo "::error ::Produits API failed" && exit 1)
           # curl -f http://localhost/commandes/health  || (echo "::error ::Commandes API failed" && exit 1)
 
