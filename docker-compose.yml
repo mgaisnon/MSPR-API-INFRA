@@ -41,9 +41,7 @@ services:
     networks:
       - mspr-network
   mspr-api-produits:
-    build:
-      context: ../MSPR-API-Produits
-      dockerfile: Dockerfile
+    image: ghcr.io/mgaisnon/mspr-api-produits:latest
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-produits:3306/produits_db
     depends_on:
