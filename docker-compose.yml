@@ -1,5 +1,7 @@
 version: '3.8'
+
 services:
+  # ───────────────────────── Traefik ─────────────────────────
   mspr-api-infra:
     image: traefik:v2.10
     ports:
@@ -12,23 +14,43 @@ services:
       - mspr-api-clients
       - mspr-api-produits
       - mspr-api-commandes
-    networks:
-      - mspr-network
+    networks: [mspr-network]
 
+  # ───────────────────────── APIs FastAPI ─────────────────────────
   mspr-api-clients:
     image: ghcr.io/mgaisnon/mspr-api-clients:latest
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-clients:3306/clients_db
-    depends_on:
-      - mspr-db-clients
-      - mspr-rabbitmq
+    depends_on: [mspr-db-clients, mspr-rabbitmq]
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.clients.rule=PathPrefix(`/clients`)"
       - "traefik.http.services.clients.loadbalancer.server.port=8000"
-    networks:
-      - mspr-network
+    networks: [mspr-network]
 
+  mspr-api-produits:
+    image: ghcr.io/mgaisnon/mspr-api-produits:latest
+    environment:
+      - DATABASE_URL=mysql+pymysql://user:password@mspr-db-produits:3306/produits_db
+    depends_on: [mspr-db-produits, mspr-rabbitmq]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.produits.rule=PathPrefix(`/produits`)"
+      - "traefik.http.services.produits.loadbalancer.server.port=8000"
+    networks: [mspr-network]
+
+  mspr-api-commandes:
+    image: ghcr.io/mgaisnon/mspr-api-commandes:latest
+    environment:
+      - DATABASE_URL=mysql+pymysql://user:password@mspr-db-commandes:3306/commandes_db
+    depends_on: [mspr-db-commandes, mspr-rabbitmq]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.commandes.rule=PathPrefix(`/commandes`)"
+      - "traefik.http.services.commandes.loadbalancer.server.port=8000"
+    networks: [mspr-network]
+
+  # ───────────────────────── Bases MySQL ─────────────────────────
   mspr-db-clients:
     image: mysql:8.0
     environment:
@@ -38,22 +60,7 @@ services:
       - MYSQL_PASSWORD=password
     volumes:
       - clients_data:/var/lib/mysql
-    networks:
-      - mspr-network
-
-  mspr-api-produits:
-    image: ghcr.io/mgaisnon/mspr-api-produits:latest
-    environment:
-      - DATABASE_URL=mysql+pymysql://user:password@mspr-db-produits:3306/produits_db
-    depends_on:
-      - mspr-db-produits
-      - mspr-rabbitmq
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.produits.rule=PathPrefix(`/produits`)"
-      - "traefik.http.services.produits.loadbalancer.server.port=8000"
-    networks:
-      - mspr-network
+    networks: [mspr-network]
 
   mspr-db-produits:
     image: mysql:8.0
@@ -64,22 +71,7 @@ services:
       - MYSQL_PASSWORD=password
     volumes:
       - produits_data:/var/lib/mysql
-    networks:
-      - mspr-network
-
-  mspr-api-commandes:
-    image: ghcr.io/mgaisnon/mspr-api-commandes:latest
-    environment:
-      - DATABASE_URL=mysql+pymysql://user:password@mspr-db-commandes:3306/commandes_db
-    depends_on:
-      - mspr-db-commandes
-      - mspr-rabbitmq
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.commandes.rule=PathPrefix(`/commandes`)"
-      - "traefik.http.services.commandes.loadbalancer.server.port=8000"
-    networks:
-      - mspr-network
+    networks: [mspr-network]
 
   mspr-db-commandes:
     image: mysql:8.0
@@ -90,38 +82,48 @@ services:
       - MYSQL_PASSWORD=password
     volumes:
       - commandes_data:/var/lib/mysql
-    networks:
-      - mspr-network
+    networks: [mspr-network]
 
+  # ───────────────────────── RabbitMQ ─────────────────────────
   mspr-rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
-    networks:
-      - mspr-network
+    networks: [mspr-network]
 
+  # ───────────────────────── Prometheus ─────────────────────────
   mspr-prometheus:
     image: prom/prometheus
     ports:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-    networks:
-      - mspr-network
+    networks: [mspr-network]
 
+  # ───────────────────────── Grafana (+ dashboards persistants) ─────────────────────────
   mspr-grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
-    networks:
-      - mspr-network
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./monitoring/grafana/provisioning/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
+    networks: [mspr-network]
 
+# ───────────────────────── Réseau commun ─────────────────────────
 networks:
   mspr-network:
     driver: bridge
 
+# ───────────────────────── Volumes persistants ─────────────────────────
 volumes:
   clients_data:
   produits_data:
   commandes_data:
+  grafana_data:
