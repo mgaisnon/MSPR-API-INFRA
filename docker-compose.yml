@@ -14,6 +14,7 @@ services:
       - mspr-api-commandes
     networks:
       - mspr-network
+
   mspr-api-clients:
     image: ghcr.io/mgaisnon/mspr-api-clients:latest
     environment:
@@ -39,6 +40,7 @@ services:
       - clients_data:/var/lib/mysql
     networks:
       - mspr-network
+
   mspr-api-produits:
     image: ghcr.io/mgaisnon/mspr-api-produits:latest
     environment:
@@ -52,6 +54,7 @@ services:
       - "traefik.http.services.produits.loadbalancer.server.port=8000"
     networks:
       - mspr-network
+
   mspr-db-produits:
     image: mysql:8.0
     environment:
@@ -63,6 +66,7 @@ services:
       - produits_data:/var/lib/mysql
     networks:
       - mspr-network
+
   mspr-api-commandes:
     image: ghcr.io/mgaisnon/mspr-api-commandes:latest
     environment:
@@ -88,6 +92,7 @@ services:
       - commandes_data:/var/lib/mysql
     networks:
       - mspr-network
+
   mspr-rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -95,6 +100,7 @@ services:
       - "15672:15672"
     networks:
       - mspr-network
+
   mspr-prometheus:
     image: prom/prometheus
     ports:
@@ -103,15 +109,18 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - mspr-network
+
   mspr-grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
     networks:
       - mspr-network
+
 networks:
   mspr-network:
     driver: bridge
+
 volumes:
   clients_data:
   produits_data:
