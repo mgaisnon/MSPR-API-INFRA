@@ -2,9 +2,20 @@ name: Deploy Global Stack
 
 on:
   push:
-    branches: ["*"]
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'feature/**'
+      - 'hotfix/**'
   pull_request:
-    branches: ["*"]
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'feature/**'
+      - 'hotfix/**'
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,13 +24,15 @@ jobs:
       - name: Checkout infra
         uses: actions/checkout@v4
 
-      - name: Docker Compose Up
+      - name: Make Up
         run: |
-          docker compose pull
-          docker compose up -d
+          make up
 
-      - name: Check health
+      - name: Vérification des routes Traefik
         run: |
-          docker run -d -p 8000:8000 ghcr.io/mgaisnon/mspr-api-clients:latest
-          sleep 10
-          curl -f http://localhost:8000/health || exit 1
+          curl -f http://localhost/clients/health || (echo "Clients API failed" && exit 1)
+          curl -f http://localhost/produits/health || (echo "Produits API failed" && exit 1)
+          curl -f http://localhost/commandes/health || (echo "Commandes API failed" && exit 1)
+      - name: Ajout des entrées dans /etc/hosts pour les domaines locaux
+        run: |
+          echo "127.0.0.1 rabbitmq.localhost prometheus.localhost grafana.localhost kibana.localhost traefik.localhost" | sudo tee -a /etc/hosts
