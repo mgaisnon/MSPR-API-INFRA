@@ -23,16 +23,13 @@ services:
   # ────────────────────── APIs FastAPI ──────────────────────
   mspr-api-clients:
     image: ghcr.io/mgaisnon/mspr-api-clients:latest
-    platform: linux/amd64
-    environment:
-      - DATABASE_URL=mysql+pymysql://user:password@mspr-db-clients:3306/clients_db
-    depends_on: [mspr-db-clients, mspr-rabbitmq]
+    depends_on: [mspr-rabbitmq]
     labels:
-    - "traefik.enable=true"
-    - "traefik.http.routers.clients.rule=PathPrefix(`/clients`)"
-    - "traefik.http.routers.clients.middlewares=clients-strip"
-    - "traefik.http.middlewares.clients-strip.stripprefix.prefixes=/clients"
-    - "traefik.http.services.clients.loadbalancer.server.port=8000"
+      - traefik.enable=true
+      - traefik.http.routers.clients.rule=PathPrefix(`/clients`)
+      - traefik.http.routers.clients.middlewares=clients-strip
+      - traefik.http.middlewares.clients-strip.stripprefix.prefixes=/clients
+      - traefik.http.services.clients.loadbalancer.server.port=8000
     networks: [mspr-network]
 
   mspr-api-produits:
