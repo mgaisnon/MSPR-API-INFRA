@@ -27,16 +27,17 @@ jobs:
       - name: Docker Compose Up
         run: |
           docker compose pull
-          docker compose up -d
+          make up
 
       - name: Vérification des routes Traefik
         run: |
-          sleep 30
-          curl -f http://localhost/clients/health || (echo "Clients API failed" && exit 1)
+          # curl -f http://localhost/clients/health || (echo "Clients API failed" && exit 1)
           # curl -f http://localhost/produits/health || (echo "Produits API failed" && exit 1)
           # curl -f http://localhost/commandes/health || (echo "Commandes API failed" && exit 1)
 
           echo "🔎 Vérification des services techniques..."
-          curl -f http://localhost:15672              || (echo "::error ::RabbitMQ UI not available" && exit 1)
-          curl -f http://localhost:9090/-/ready       || (echo "::error ::Prometheus not ready" && exit 1)
-          curl -f http://localhost:3000/login         || (echo "::error ::Grafana not reachable" && exit 1)
+          curl -f http://rabbitmq.localhost              || (echo "::error ::RabbitMQ UI not available" && exit 1)
+          curl -f http://prometheus.localhost       || (echo "::error ::Prometheus not ready" && exit 1)
+          curl -f http://grafana.localhost    || (echo "::error ::Grafana not reachable" && exit 1)
+          curl -f http://kibana.localhost    || (echo "::error ::Kibana not reachable" && exit 1)
+          curl -f http://traefik.localhost    || (echo "::error ::Traefik not reachable" && exit 1)

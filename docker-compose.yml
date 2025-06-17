@@ -141,6 +141,36 @@ services:
       - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
     networks: [mspr-network]
 
+  elasticsearch:
+      image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+      environment:
+        - discovery.type=single-node
+        - xpack.security.enabled=false
+      volumes:
+        - esdata:/usr/share/elasticsearch/data
+      networks: [mspr-network]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    depends_on: [elasticsearch]
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kibana.rule=Host(`kibana.localhost`)"
+      - "traefik.http.services.kibana.loadbalancer.server.port=5601"
+    networks: [mspr-network]
+
+  fluent-bit:
+    image: cr.fluentbit.io/fluent/fluent-bit:2.2
+    depends_on: [elasticsearch]
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [mspr-network]
+
+
 # Réseau commun
 networks:
   mspr-network:
@@ -152,3 +182,4 @@ volumes:
   produits_data:
   commandes_data:
   grafana_data:
+  esdata:

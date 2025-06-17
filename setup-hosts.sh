@@ -1,5 +1,5 @@
 HOSTS_FILE="/etc/hosts"
-NEEDED_HOSTS=("traefik.localhost" "grafana.localhost" "prometheus.localhost" "rabbitmq.localhost")
+NEEDED_HOSTS=("traefik.localhost" "grafana.localhost" "prometheus.localhost" "rabbitmq.localhost" "kibana.localhost")
 
 for HOST in "${NEEDED_HOSTS[@]}"; do
   if ! grep -q "$HOST" "$HOSTS_FILE"; then
