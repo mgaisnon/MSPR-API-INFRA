@@ -4,9 +4,13 @@ services:
   # ────────────────────── Traefik ──────────────────────
   mspr-api-infra:
     image: traefik:v2.10
+    platform: linux/amd64
     ports:
       - "80:80"
       - "8080:8080"
+    labels:
+    - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+    - "traefik.http.routers.traefik.service=api@internal"
     volumes:
       - ./traefik.yml:/etc/traefik/traefik.yml
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -19,26 +23,26 @@ services:
   # ────────────────────── APIs FastAPI ──────────────────────
   mspr-api-clients:
     image: ghcr.io/mgaisnon/mspr-api-clients:latest
+    platform: linux/amd64
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-clients:3306/clients_db
     depends_on: [mspr-db-clients, mspr-rabbitmq]
     labels:
-      - "traefik.enable=true"
-      # Route : http://localhost/clients/api/health
-      - "traefik.http.routers.clients.rule=PathPrefix(`/clients`)"
-      - "traefik.http.routers.clients.middlewares=clients-strip"
-      - "traefik.http.middlewares.clients-strip.stripprefix.prefixes=/clients"
-      - "traefik.http.services.clients.loadbalancer.server.port=8000"
+    - "traefik.enable=true"
+    - "traefik.http.routers.clients.rule=PathPrefix(`/clients`)"
+    - "traefik.http.routers.clients.middlewares=clients-strip"
+    - "traefik.http.middlewares.clients-strip.stripprefix.prefixes=/clients"
+    - "traefik.http.services.clients.loadbalancer.server.port=8000"
     networks: [mspr-network]
 
   mspr-api-produits:
     image: ghcr.io/mgaisnon/mspr-api-produits:latest
+    platform: linux/amd64
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-produits:3306/produits_db
     depends_on: [mspr-db-produits, mspr-rabbitmq]
     labels:
       - "traefik.enable=true"
-      # Route : http://localhost/produits/api/health
       - "traefik.http.routers.produits.rule=PathPrefix(`/produits`)"
       - "traefik.http.routers.produits.middlewares=produits-strip"
       - "traefik.http.middlewares.produits-strip.stripprefix.prefixes=/produits"
@@ -47,16 +51,16 @@ services:
 
   mspr-api-commandes:
     image: ghcr.io/mgaisnon/mspr-api-commandes:latest
+    platform: linux/amd64
     environment:
       - DATABASE_URL=mysql+pymysql://user:password@mspr-db-commandes:3306/commandes_db
     depends_on: [mspr-db-commandes, mspr-rabbitmq]
     labels:
-      - "traefik.enable=true"
-      # Route : http://localhost/commandes/api/health
-      - "traefik.http.routers.commandes.rule=PathPrefix(`/commandes`)"
-      - "traefik.http.routers.commandes.middlewares=commandes-strip"
-      - "traefik.http.middlewares.commandes-strip.stripprefix.prefixes=/commandes"
-      - "traefik.http.services.commandes.loadbalancer.server.port=8002"
+    - "traefik.enable=true"
+    - "traefik.http.routers.commandes.rule=PathPrefix(`/commandes`)"
+    - "traefik.http.routers.commandes.middlewares=commandes-strip"
+    - "traefik.http.middlewares.commandes-strip.stripprefix.prefixes=/commandes"
+    - "traefik.http.services.commandes.loadbalancer.server.port=8002"
     networks: [mspr-network]
 
   # ────────────────────── Bases MySQL ──────────────────────
@@ -99,6 +103,10 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.localhost`)"
+    - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
     networks: [mspr-network]
 
   # ────────────────────── Prometheus ──────────────────────
@@ -106,6 +114,10 @@ services:
     image: prom/prometheus
     ports:
       - "9090:9090"
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
+    - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks: [mspr-network]
@@ -118,10 +130,14 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+    - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
-      - ./monitoring/grafana/provisioning/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./monitoring/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards.yml
+      - ./monitoring/grafana/provisioning/datasources.yml:/etc/grafana/provisioning/datasources.yml
       - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
     networks: [mspr-network]
 
