@@ -1,3 +1,5 @@
+#!/bin/bash
+
 HOSTS_FILE="/etc/hosts"
 NEEDED_HOSTS=("traefik.localhost" "grafana.localhost" "prometheus.localhost" "rabbitmq.localhost" "kibana.localhost")
 
