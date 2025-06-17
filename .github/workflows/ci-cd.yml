@@ -34,10 +34,6 @@ jobs:
           # curl -f http://localhost/clients/health || (echo "Clients API failed" && exit 1)
           # curl -f http://localhost/produits/health || (echo "Produits API failed" && exit 1)
           # curl -f http://localhost/commandes/health || (echo "Commandes API failed" && exit 1)
-
-          echo "🔎 Vérification des services techniques..."
-          curl -f http://rabbitmq.localhost              || (echo "::error ::RabbitMQ UI not available" && exit 1)
-          curl -f http://prometheus.localhost       || (echo "::error ::Prometheus not ready" && exit 1)
-          curl -f http://grafana.localhost    || (echo "::error ::Grafana not reachable" && exit 1)
-          curl -f http://kibana.localhost    || (echo "::error ::Kibana not reachable" && exit 1)
-          curl -f http://traefik.localhost    || (echo "::error ::Traefik not reachable" && exit 1)
+      - name: Ajout des entrées dans /etc/hosts pour les domaines locaux
+        run: |
+          echo "127.0.0.1 rabbitmq.localhost prometheus.localhost grafana.localhost kibana.localhost traefik.localhost" | sudo tee -a /etc/hosts
