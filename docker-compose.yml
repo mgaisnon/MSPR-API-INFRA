@@ -23,6 +23,7 @@ services:
   # ────────────────────── APIs FastAPI ──────────────────────
   mspr-api-clients:
     image: ghcr.io/mgaisnon/mspr-api-clients:latest
+    platform: linux/amd64
     depends_on: [mspr-rabbitmq]
     labels:
       - traefik.enable=true
