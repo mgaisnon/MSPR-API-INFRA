@@ -24,9 +24,8 @@ jobs:
       - name: Checkout infra
         uses: actions/checkout@v4
 
-      - name: Docker Compose Up
+      - name: Make Up
         run: |
-          docker compose pull
           make up
 
       - name: Vérification des routes Traefik

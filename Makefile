@@ -5,6 +5,8 @@ HOSTS_SCRIPT=./setup-hosts.sh
 up:
 	@echo "🚀 Ajout des entrées dans /etc/hosts (si nécessaire)..."
 	bash $(HOSTS_SCRIPT)
+	@echo "🔄 Mise à jour des images Docker..."
+	docker compose pull
 	@echo "📦 Démarrage de la stack Docker..."
 	docker compose up -d
 
