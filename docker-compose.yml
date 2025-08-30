@@ -15,6 +15,11 @@ services:
       - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
     networks:
       - net
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # DB pour Clients
   db-clients:
@@ -30,21 +35,22 @@ services:
       - db_clients_data:/var/lib/postgresql/data
     networks:
       - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clientuser -d clientsdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # API Clients
   api-clients:
-    build:
-      context: ../api-clients
-    ports:
-      - "8001:8001"
+    image: ${IMG_API_CLIENTS:?set IMG_API_CLIENTS}
+    build: null
     environment:
       DATABASE_URL: postgresql://clientuser:clientpass@db-clients:5432/clientsdb
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
       - db-clients
       - rabbitmq
-    networks:
-      - net
 
   # DB pour Produits
   db-produits:
@@ -60,21 +66,22 @@ services:
       - db_produits_data:/var/lib/postgresql/data
     networks:
       - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U produituser -d produitsdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # API Produits
   api-produits:
-    build:
-      context: ../api-produits
-    ports:
-      - "8003:8003"
+    image: ${IMG_API_PRODUITS:?set IMG_API_PRODUITS}
+    build: null
     environment:
       DATABASE_URL: postgresql://produituser:produitpass@db-produits:5432/produitsdb
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
       - db-produits
       - rabbitmq
-    networks:
-      - net
 
   db-commandes:
     image: postgres:16
@@ -89,21 +96,22 @@ services:
       - db_commandes_data:/var/lib/postgresql/data
     networks:
       - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U commandeuser -d commandesdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # API Commandes
   api-commandes:
-    build:
-      context: ../api-commandes
-    ports:
-      - "8002:8002"
+    image: ${IMG_API_COMMANDES:?set IMG_API_COMMANDES}
+    build: null
     environment:
       DATABASE_URL: postgresql://commandeuser:commandepass@db-commandes:5432/commandesdb
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
       - db-commandes
       - rabbitmq
-    networks:
-      - net
 
   # Prometheus
   prometheus:
