@@ -81,15 +81,37 @@ jobs:
           docker compose -f docker-compose.ci.yml up -d
           docker compose -f docker-compose.ci.yml ps
 
-      - name: Smoke tests
+      - name: Smoke tests (with retries)
         run: |
-          set -e
-          curl -fsS http://localhost:8001/ || (docker compose -f docker-compose.ci.yml logs api-clients && exit 1)
-          curl -fsS http://localhost:8002/ || (docker compose -f docker-compose.ci.yml logs api-commandes && exit 1)
-          curl -fsS http://localhost:8003/ || (docker compose -f docker-compose.ci.yml logs api-produits && exit 1)
-          curl -fsS http://localhost:15672/ || (docker compose -f docker-compose.ci.yml logs rabbitmq && exit 1)
-          curl -fsS http://localhost:9090/  || (docker compose -f docker-compose.ci.yml logs prometheus && exit 1)
-          curl -fsS http://localhost:3000/  || (docker compose -f docker-compose.ci.yml logs grafana && exit 1)
+          set -euo pipefail
+
+          wait_http() {
+            local url="$1"; local name="$2"; local tries=30
+            for i in $(seq 1 $tries); do
+              if curl -fsS "$url" >/dev/null; then
+                echo "✅ $name OK ($url)"; return 0
+              fi
+              echo "… waiting $name ($i/$tries)"; sleep 3
+            done
+            echo "❌ $name KO"; return 1
+          }
+
+          # APIs: essaie /health puis /docs puis /
+          try_api() {
+            local base="$1"; local svc="$2"
+            wait_http "$base/health" "$svc" || \
+            wait_http "$base/docs" "$svc"  || \
+            wait_http "$base/" "$svc"      || \
+            (docker compose -f docker-compose.ci.yml logs "$svc" && exit 1)
+          }
+
+          try_api http://localhost:8001 api-clients
+          try_api http://localhost:8002 api-commandes
+          try_api http://localhost:8003 api-produits
+
+          wait_http http://localhost:15672 rabbitmq
+          wait_http http://localhost:9090  prometheus
+          wait_http http://localhost:3000  grafana
 
       - name: Dump logs on failure
         if: failure()
