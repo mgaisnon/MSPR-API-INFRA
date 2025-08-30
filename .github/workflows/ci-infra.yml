@@ -177,7 +177,8 @@ jobs:
 
       - name: Skip (no deploy hooks)
         if: ${{ steps.have.outputs.OK != 'true' }}
-        run: echo "Skipping Render deploy (add secrets: RENDER_HOOK_CLIENTS, RENDER_HOOK_COMMANDES, RENDER_HOOK_PRODUITS)."
+        run: |
+          echo "Skipping Render deploy (add secrets: RENDER_HOOK_CLIENTS, RENDER_HOOK_COMMANDES, RENDER_HOOK_PRODUITS)."
 
       - name: Trigger Render deploy - clients
         if: ${{ steps.have.outputs.OK == 'true' }}
