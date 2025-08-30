@@ -142,56 +142,106 @@ jobs:
       - name: Down
         if: always()
         run: docker compose -f docker-compose.ci.yml down -v
-
-  # 🚀 Déploiement Render via Deploy Hooks
-  deploy-render:
+  
+  render-deploy:
+    name: 🚀 Deploy to Render (hooks) + wait
     runs-on: ubuntu-latest
-    needs: [prepare]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    env:
+      WAIT_TIMEOUT: ${{ inputs.wait_timeout_seconds || '600' }}
+      HOOK_CLIENTS:   ${{ secrets.RENDER_HOOK_CLIENTS }}
+      HOOK_PRODUITS:  ${{ secrets.RENDER_HOOK_PRODUITS }}
+      HOOK_COMMANDES: ${{ secrets.RENDER_HOOK_COMMANDES }}
+      URL_CLIENTS:    ${{ secrets.RENDER_URL_CLIENTS }}
+      URL_PRODUITS:   ${{ secrets.RENDER_URL_PRODUITS }}
+      URL_COMMANDES:  ${{ secrets.RENDER_URL_COMMANDES }}
+
     steps:
       - name: Check deploy hooks presence
         id: have
         shell: bash
         run: |
-          ok=1
-          [ -n "${{ secrets.RENDER_HOOK_CLIENTS }}" ]   || { echo "ℹ️ Missing RENDER_HOOK_CLIENTS"; ok=0; }
-          [ -n "${{ secrets.RENDER_HOOK_COMMANDES }}" ] || { echo "ℹ️ Missing RENDER_HOOK_COMMANDES"; ok=0; }
-          [ -n "${{ secrets.RENDER_HOOK_PRODUITS }}" ]  || { echo "ℹ️ Missing RENDER_HOOK_PRODUITS"; ok=0; }
-          if [ $ok -eq 1 ]; then echo "OK=true" >> $GITHUB_OUTPUT; else echo "OK=false" >> $GITHUB_OUTPUT; fi
+          set -euo pipefail
+          ok=true
+          for v in HOOK_CLIENTS HOOK_PRODUITS HOOK_COMMANDES; do
+            if [ -z "${!v:-}" ]; then
+              echo "❌ Missing secret: $v"
+              ok=false
+            fi
+          done
+          if $ok; then
+            echo "OK=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "OK=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Skip (no deploy hooks)
-        if: steps.have.outputs.OK != 'true'
+        if: ${{ steps.have.outputs.OK != 'true' }}
         run: echo "Skipping Render deploy (add secrets: RENDER_HOOK_CLIENTS, RENDER_HOOK_COMMANDES, RENDER_HOOK_PRODUITS)."
 
-      # Facultatif : ping les images pour les réchauffer côté registry
-      - name: Pre-pull images (optional)
-        if: steps.have.outputs.OK == 'true'
-        run: |
-          docker pull "${{ needs.prepare.outputs.clients }}"   || true
-          docker pull "${{ needs.prepare.outputs.produits }}"  || true
-          docker pull "${{ needs.prepare.outputs.commandes }}" || true
-
-      # Déclenche le redeploy Render (chaque hook correspond à un service Render)
       - name: Trigger Render deploy - clients
-        if: steps.have.outputs.OK == 'true'
+        if: ${{ steps.have.outputs.OK == 'true' }}
         run: |
-          curl -fsSL -X POST "${{ secrets.RENDER_HOOK_CLIENTS }}" \
-            -H 'Content-Type: application/json' \
-            -d "{\"image\":\"${{ needs.prepare.outputs.clients }}\",\"actor\":\"${{ github.actor }}\",\"sha\":\"${{ github.sha }}\",\"repo\":\"${{ github.repository }}\"}"
-          echo "Triggered clients"
-
-      - name: Trigger Render deploy - commandes
-        if: steps.have.outputs.OK == 'true'
-        run: |
-          curl -fsSL -X POST "${{ secrets.RENDER_HOOK_COMMANDES }}" \
-            -H 'Content-Type: application/json' \
-            -d "{\"image\":\"${{ needs.prepare.outputs.commandes }}\",\"actor\":\"${{ github.actor }}\",\"sha\":\"${{ github.sha }}\",\"repo\":\"${{ github.repository }}\"}"
-          echo "Triggered commandes"
+          set -euo pipefail
+          curl -fsSL -X POST "${HOOK_CLIENTS}"
+          echo "→ Deploy trigger sent (clients)."
 
       - name: Trigger Render deploy - produits
-        if: steps.have.outputs.OK == 'true'
+        if: ${{ steps.have.outputs.OK == 'true' }}
         run: |
-          curl -fsSL -X POST "${{ secrets.RENDER_HOOK_PRODUITS }}" \
-            -H 'Content-Type: application/json' \
-            -d "{\"image\":\"${{ needs.prepare.outputs.produits }}\",\"actor\":\"${{ github.actor }}\",\"sha\":\"${{ github.sha }}\",\"repo\":\"${{ github.repository }}\"}"
-          echo "Triggered produits"
+          set -euo pipefail
+          curl -fsSL -X POST "${HOOK_PRODUITS}"
+          echo "→ Deploy trigger sent (produits)."
+
+      - name: Trigger Render deploy - commandes
+        if: ${{ steps.have.outputs.OK == 'true' }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -X POST "${HOOK_COMMANDES}"
+          echo "→ Deploy trigger sent (commandes)."
+
+      - name: Wait readiness (clients)
+        if: ${{ steps.have.outputs.OK == 'true' && env.URL_CLIENTS != '' }}
+        run: |
+          set -euo pipefail
+          end=$((SECONDS + ${WAIT_TIMEOUT}))
+          url="${URL_CLIENTS}"
+          while [ $SECONDS -lt $end ]; do
+            if curl -fsS "$url/health" >/dev/null || curl -fsS "$url/docs" >/dev/null || curl -fsS "$url/" >/dev/null; then
+              echo "✅ clients ready: $url"; exit 0
+            fi
+            sleep 5
+          done
+          echo "❌ timeout clients (${WAIT_TIMEOUT}s)"; exit 1
+
+      - name: Wait readiness (produits)
+        if: ${{ steps.have.outputs.OK == 'true' && env.URL_PRODUITS != '' }}
+        run: |
+          set -euo pipefail
+          end=$((SECONDS + ${WAIT_TIMEOUT}))
+          url="${URL_PRODUITS}"
+          while [ $SECONDS -lt $end ]; do
+            if curl -fsS "$url/health" >/dev/null || curl -fsS "$url/docs" >/dev/null || curl -fsS "$url/" >/dev/null; then
+              echo "✅ produits ready: $url"; exit 0
+            fi
+            sleep 5
+          done
+          echo "❌ timeout produits (${WAIT_TIMEOUT}s)"; exit 1
+
+      - name: Wait readiness (commandes)
+        if: ${{ steps.have.outputs.OK == 'true' && env.URL_COMMANDES != '' }}
+        run: |
+          set -euo pipefail
+          end=$((SECONDS + ${WAIT_TIMEOUT}))
+          url="${URL_COMMANDES}"
+          while [ $SECONDS -lt $end ]; do
+            if curl -fsS "$url/health" >/dev/null || curl -fsS "$url/docs" >/dev/null || curl -fsS "$url/" >/dev/null; then
+              echo "✅ commandes ready: $url"; exit 0
+            fi
+            sleep 5
+          done
+          echo "❌ timeout commandes (${WAIT_TIMEOUT}s)"; exit 1
+
+      - name: Info (no URLs provided)
+        if: ${{ steps.have.outputs.OK == 'true' && env.URL_CLIENTS == '' && env.URL_PRODUITS == '' && env.URL_COMMANDES == '' }}
+        run: echo "Hooks OK but no public URLs set — readiness checks skipped."
