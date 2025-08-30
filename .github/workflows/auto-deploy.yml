@@ -1,0 +1,67 @@
+name: Auto-Deploy from API
+
+on:
+  repository_dispatch:
+    types: [deploy_image]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  TARGET_FILE: docker-compose.yml         # change si besoin (ex: k8s/deployment.yaml)
+  IMAGE_FIELD_REGEX: '^\s*image:\s*.+$'   # ligne à remplacer
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read payload
+        id: p
+        run: |
+          echo "image=${{ github.event.client_payload.image }}"           >> $GITHUB_OUTPUT
+          echo "actor=${{ github.event.client_payload.actor }}"           >> $GITHUB_OUTPUT
+          echo "sha=${{ github.event.client_payload.sha }}"               >> $GITHUB_OUTPUT
+          echo "repo=${{ github.event.client_payload.repo }}"             >> $GITHUB_OUTPUT
+          echo "run_url=${{ github.event.client_payload.run_url }}"       >> $GITHUB_OUTPUT
+
+      - name: Update manifest image
+        run: |
+          set -euo pipefail
+          FILE="${{ env.TARGET_FILE }}"
+          IMG="${{ steps.p.outputs.image }}"
+          REGEX="${{ env.IMAGE_FIELD_REGEX }}"
+
+          test -f "$FILE" || { echo "❌ fichier '$FILE' introuvable"; exit 1; }
+
+          if grep -Eq "$REGEX" "$FILE"; then
+            sed -E -i "s|$REGEX|  image: ${IMG}|g" "$FILE"
+          else
+            echo "⚠️ Aucun champ image trouvé (REGEX: $REGEX)"; exit 1
+          fi
+
+          echo "Nouvelle image: $IMG"
+          git --no-pager diff -- "$FILE" || true
+
+      - name: Create PR with change
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(deploy): image -> ${{ steps.p.outputs.image }} by ${{ steps.p.outputs.actor }}"
+          title: "chore(deploy): ${{ steps.p.outputs.image }}"
+          body: |
+            Auto-deploy triggered by **${{ steps.p.outputs.actor }}** from **${{ steps.p.outputs.repo }}**  
+            SHA: `${{ steps.p.outputs.sha }}`  
+            Run: ${{ steps.p.outputs.run_url }}
+
+            Updated `${{ env.TARGET_FILE }}` to:
+            ```
+            image: ${{ steps.p.outputs.image }}
+            ```
+          branch: "ci/deploy-${{ steps.p.outputs.sha }}"
+          base: main
+          labels: deploy, automation
