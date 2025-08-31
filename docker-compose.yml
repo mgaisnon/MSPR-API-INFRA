@@ -1,4 +1,24 @@
 services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
   # Message Broker: RabbitMQ
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -15,6 +35,10 @@ services:
       - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
     networks:
       - net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.localhost`)"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
       interval: 10s
@@ -44,13 +68,18 @@ services:
   # API Clients
   api-clients:
     image: ${IMG_API_CLIENTS:?set IMG_API_CLIENTS}
-    build: null
     environment:
-      DATABASE_URL: postgresql://clientuser:clientpass@db-clients:5432/clientsdb
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      DATABASE_URL: ${DATABASE_URL_CLIENTS}
+      RABBITMQ_URL: ${RABBITMQ_URL}
     depends_on:
       - db-clients
       - rabbitmq
+    networks:
+      - net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-clients.rule=Host(`clients.localhost`)"
+      - "traefik.http.services.api-clients.loadbalancer.server.port=8000"
 
   # DB pour Produits
   db-produits:
@@ -75,13 +104,18 @@ services:
   # API Produits
   api-produits:
     image: ${IMG_API_PRODUITS:?set IMG_API_PRODUITS}
-    build: null
     environment:
-      DATABASE_URL: postgresql://produituser:produitpass@db-produits:5432/produitsdb
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      DATABASE_URL: ${DATABASE_URL_PRODUITS}
+      RABBITMQ_URL: ${RABBITMQ_URL}
     depends_on:
       - db-produits
       - rabbitmq
+    networks:
+      - net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-produits.rule=Host(`produits.localhost`)"
+      - "traefik.http.services.api-produits.loadbalancer.server.port=8000"
 
   db-commandes:
     image: postgres:16
@@ -105,13 +139,18 @@ services:
   # API Commandes
   api-commandes:
     image: ${IMG_API_COMMANDES:?set IMG_API_COMMANDES}
-    build: null
     environment:
-      DATABASE_URL: postgresql://commandeuser:commandepass@db-commandes:5432/commandesdb
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      DATABASE_URL: ${DATABASE_URL_COMMANDES}
+      RABBITMQ_URL: ${RABBITMQ_URL}
     depends_on:
       - db-commandes
       - rabbitmq
+    networks:
+      - net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-commandes.rule=Host(`commandes.localhost`)"
+      - "traefik.http.services.api-commandes.loadbalancer.server.port=8000"
 
   # Prometheus
   prometheus:
@@ -131,6 +170,10 @@ services:
       - api-commandes
     networks:
       - net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
   # Grafana
   grafana:
@@ -147,6 +190,10 @@ services:
       - prometheus
     networks:
       - net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
 volumes:
   rabbitmq_data:
