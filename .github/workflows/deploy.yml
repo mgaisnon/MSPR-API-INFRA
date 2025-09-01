@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  start:
     runs-on: ubuntu-latest
 
     steps:
@@ -67,3 +67,58 @@ jobs:
 
       - name: Show running containers
         run: docker ps -a
+  
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Fly CLI
+        run: |
+          curl -L https://fly.io/install.sh | sh
+          echo "${HOME}/.fly/bin" >> $GITHUB_PATH
+
+      - name: Fly.io auth
+        run: flyctl auth token ${{ secrets.FLY_API_TOKEN }}
+
+      # Déploiement des services d'infra uniquement
+      - name: Deploy RabbitMQ
+        run: flyctl deploy --config infra/rabbitmq/fly.toml --remote-only
+
+      - name: Deploy Prometheus
+        run: flyctl deploy --config infra/prometheus/fly.toml --remote-only
+
+      - name: Deploy Grafana
+        run: flyctl deploy --config infra/grafana/fly.toml --remote-only
+
+      # Vérification de la santé de tous les services (APIs + infra)
+      - name: Verify health
+        run: |
+          endpoints=(
+            "https://mspr-rabbitmq.fly.dev"
+            "https://mspr-prometheus.fly.dev"
+            "https://mspr-grafana.fly.dev/login"
+            "https://mspr-api-clients.fly.dev"
+            "https://mspr-api-produits.fly.dev"
+            "https://mspr-api-commandes.fly.dev"
+          )
+          names=("RabbitMQ" "Prometheus" "Grafana" "API Clients" "API Produits" "API Commandes")
+
+          for i in "${!endpoints[@]}"; do
+            echo "⏳ Checking ${names[$i]} at ${endpoints[$i]}..."
+            for attempt in {1..10}; do
+              if curl -fsS "${endpoints[$i]}" >/dev/null 2>&1; then
+                echo "✅ ${names[$i]} is healthy"
+                break
+              else
+                echo "❌ ${names[$i]} not ready (attempt $attempt)"
+                sleep 5
+              fi
+              if [ $attempt -eq 10 ]; then
+                echo "💥 ${names[$i]} failed healthcheck"
+                exit 1
+              fi
+            done
+          done
