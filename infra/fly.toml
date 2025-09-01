@@ -2,15 +2,30 @@ app = "paye-ton-kawa"
 primary_region = "cdg"
 
 [build]
-  image = "nginx:alpine"
+  dockerfile = "Dockerfile"
 
 [http_service]
   internal_port = 80
   force_https = true
-  auto_stop_machines = false
   auto_start_machines = true
+  auto_stop_machines = false
   min_machines_running = 1
   processes = ["app"]
+
+    [http_service.concurrency]
+    type = "connections"
+    soft_limit = 100
+    hard_limit = 200
+
+    # Healthcheck externe pour Nginx
+    [[http_service.checks]]
+    interval = "15s"
+    timeout = "2s"
+    method = "GET"
+    path = "/nginx/health"
+    grace_period = "10s"
+    protocol = "http"
+    tls_skip_verify = false
 
 [[vm]]
   memory = "256mb"
