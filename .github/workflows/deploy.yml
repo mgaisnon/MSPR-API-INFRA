@@ -103,7 +103,7 @@ jobs:
       - name: Verify health (Infra + APIs)
         run: |
           endpoints=(
-            "https://paye-ton-kawa.fly.dev",
+            "https://paye-ton-kawa.fly.dev"
             "https://mspr-rabbitmq.fly.dev"
             "https://mspr-prometheus.fly.dev"
             "https://mspr-grafana.fly.dev/login"
@@ -111,7 +111,8 @@ jobs:
             "https://mspr-api-produits.fly.dev"
             "https://mspr-api-commandes.fly.dev"
           )
-          names=("RabbitMQ" "Prometheus" "Grafana" "API Clients" "API Produits" "API Commandes")
+
+          names=("Front Nginx" "RabbitMQ" "Prometheus" "Grafana" "API Clients" "API Produits" "API Commandes")
 
           for i in "${!endpoints[@]}"; do
             echo "⏳ Checking ${names[$i]} at ${endpoints[$i]}..."
@@ -129,3 +130,4 @@ jobs:
               fi
             done
           done
+
