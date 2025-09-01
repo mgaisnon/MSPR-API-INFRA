@@ -8,6 +8,10 @@ primary_region = "cdg"
   RABBITMQ_DEFAULT_USER = "guest"
   RABBITMQ_DEFAULT_PASS = "guest"
 
+[mounts]
+  source = "rabbitmq_data"
+  destination = "/var/lib/rabbitmq"
+
 [[services]]
   internal_port = 5672
   processes = ["app"]
