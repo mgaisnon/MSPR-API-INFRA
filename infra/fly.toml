@@ -15,6 +15,3 @@ primary_region = "cdg"
   memory = "256mb"
   cpu_kind = "shared"
   cpus = 1
-
-[env]
-  TRAEFIK_PROVIDERS_FILE_FILENAME = "/etc/traefik/dynamic.yml"
