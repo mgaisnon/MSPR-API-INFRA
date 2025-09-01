@@ -7,6 +7,7 @@ app = 'mspr-grafana'
 primary_region = 'cdg'
 
 [build]
+  grafana/grafana:latest
 
 [http_service]
   internal_port = 3000
