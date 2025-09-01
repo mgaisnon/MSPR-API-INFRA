@@ -91,12 +91,12 @@ jobs:
       - name: Deploy app
         run: flyctl deploy --config infra/fly.toml --remote-only
 
-      - name: Deploy RabbitMQ
-        run: flyctl deploy --config infra/rabbitmq/fly.toml --remote-only
-
       - name: Ensure RabbitMQ volume exists
         run: |
           flyctl volume create rabbitmq_data -a mspr-rabbitmq -r cdg -n 1 || true
+
+      - name: Deploy RabbitMQ
+        run: flyctl deploy --config infra/rabbitmq/fly.toml --remote-only
 
       - name: Deploy Prometheus
         run: flyctl deploy --config infra/prometheus/fly.toml --remote-only
