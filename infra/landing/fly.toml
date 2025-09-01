@@ -1,17 +1,19 @@
-# fly.toml app configuration file generated for paye-ton-kawa on 2025-08-31T09:55:25+02:00
+# fly.toml app configuration file generated for landing-wispy-glade-503 on 2025-09-01T10:55:26+02:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'paye-ton-kawa'
+app = 'landing-wispy-glade-503'
 primary_region = 'cdg'
 
+[build]
+
 [http_service]
-  internal_port = 8080
+  internal_port = 80
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = false
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]

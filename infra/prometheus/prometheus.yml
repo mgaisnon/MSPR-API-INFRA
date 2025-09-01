@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['mspr-rabbitmq.internal:15692']
+
+  - job_name: 'api-clients'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['mspr-api-clients.internal:8001']
+
+  - job_name: 'api-produits'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['mspr-api-produits.internal:8002']
+
+  - job_name: 'api-commandes'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['mspr-api-commandes.internal:8003']
