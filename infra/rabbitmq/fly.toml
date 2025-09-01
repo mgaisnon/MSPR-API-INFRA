@@ -30,5 +30,5 @@ primary_region = "cdg"
   protocol = "tcp"
 
   [[services.ports]]
-    handlers = ["http"]
-    port = 80
+    port = 443
+    handlers = ["tls", "http"]
