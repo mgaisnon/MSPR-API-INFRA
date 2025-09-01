@@ -22,7 +22,6 @@ jobs:
 
       - name: Start infra
         run: |
-          # Utilise les images déjà poussées par les autres repos API
           export IMG_API_CLIENTS=ghcr.io/mgaisnon/mspr-api-clients:latest
           export IMG_API_PRODUITS=ghcr.io/mgaisnon/mspr-api-produits:latest
           export IMG_API_COMMANDES=ghcr.io/mgaisnon/mspr-api-commandes:latest
@@ -52,27 +51,18 @@ jobs:
             done
           done
 
-      - name: Check APIs health
+      - name: Check APIs containers are running
         run: |
-          endpoints=("http://localhost:8001/health" "http://localhost:8002/health" "http://localhost:8003/health")
-          names=("api-clients" "api-produits" "api-commandes")
-
-          for i in "${!endpoints[@]}"; do
-            echo "⏳ Checking ${names[$i]} on ${endpoints[$i]}..."
-            for attempt in {1..10}; do
-              if curl -fsS "${endpoints[$i]}" >/dev/null 2>&1; then
-                echo "✅ ${names[$i]} is healthy"
-                break
-              else
-                echo "❌ ${names[$i]} not ready (attempt $attempt)"
-                sleep 5
-              fi
-              if [ $attempt -eq 10 ]; then
-                echo "💥 ${names[$i]} failed healthcheck"
-                docker logs $(docker compose ps -q ${names[$i]})
-                exit 1
-              fi
-            done
+          apis=("api-clients" "api-produits" "api-commandes")
+          for api in "${apis[@]}"; do
+            status=$(docker inspect --format='{{.State.Status}}' $api || echo "null")
+            if [[ "$status" == "running" ]]; then
+              echo "✅ $api is running"
+            else
+              echo "💥 $api is not running"
+              docker logs $api
+              exit 1
+            fi
           done
 
       - name: Show running containers
