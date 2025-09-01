@@ -1,3 +1,10 @@
-FROM traefik:v3.0
-COPY traefik.yml /etc/traefik/traefik.yml
-COPY dynamic.yml /etc/traefik/dynamic.yml
+FROM nginx:alpine
+
+# Supprime la conf par défaut
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copie ta conf statique
+COPY nginx.conf /etc/nginx/conf.d/
+
+# Copie ta landing page
+COPY index.html /usr/share/nginx/html/index.html
