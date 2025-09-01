@@ -1,4 +1,4 @@
-name: Build & Deploy Infra
+name: Deploy Infra
 
 on:
   push:
@@ -6,45 +6,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build & push images
-        run: |
-          IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}   # met en lowercase
-          IMAGE_TAG=${GITHUB_SHA}
-
-          echo "🔨 Building images with tag $IMAGE_TAG"
-
-          docker build -t $IMAGE_PREFIX/api-clients:$IMAGE_TAG ./api-clients
-          docker push $IMAGE_PREFIX/api-clients:$IMAGE_TAG
-
-          docker build -t $IMAGE_PREFIX/api-produits:$IMAGE_TAG ./api-produits
-          docker push $IMAGE_PREFIX/api-produits:$IMAGE_TAG
-
-          docker build -t $IMAGE_PREFIX/api-commandes:$IMAGE_TAG ./api-commandes
-          docker push $IMAGE_PREFIX/api-commandes:$IMAGE_TAG
-
   deploy:
     runs-on: ubuntu-latest
-    needs: build-and-push
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Log in to GHCR
@@ -56,9 +22,10 @@ jobs:
 
       - name: Start infra
         run: |
-          export IMG_API_CLIENTS=ghcr.io/${{ github.repository }}/api-clients:${{ github.sha }}
-          export IMG_API_PRODUITS=ghcr.io/${{ github.repository }}/api-produits:${{ github.sha }}
-          export IMG_API_COMMANDES=ghcr.io/${{ github.repository }}/api-commandes:${{ github.sha }}
+          # Utilise les images déjà poussées par les autres repos API
+          export IMG_API_CLIENTS=ghcr.io/mgaisnon/mspr-api-clients:latest
+          export IMG_API_PRODUITS=ghcr.io/mgaisnon/mspr-api-produits:latest
+          export IMG_API_COMMANDES=ghcr.io/mgaisnon/mspr-api-commandes:latest
 
           docker compose -f docker-compose.yml pull
           docker compose -f docker-compose.yml up -d
