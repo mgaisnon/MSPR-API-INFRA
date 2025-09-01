@@ -1,0 +1,42 @@
+app = "paye-ton-kawa"
+primary_region = "cdg"
+
+[build]
+dockerfile = "Dockerfile"
+
+[env]
+# DNS interne Fly
+NGINX_RESOLVER = "[fdaa::3]:53"
+
+# Hôtes internes + ports des microservices
+CLIENTS_HOST   = "mspr-api-clients.internal"
+CLIENTS_PORT   = "8080"
+PRODUITS_HOST  = "mspr-api-produits.internal"
+PRODUITS_PORT  = "8080"
+COMMANDES_HOST = "mspr-api-commandes.internal"
+COMMANDES_PORT = "8080"
+
+[http_service]
+internal_port = 80
+force_https = true
+auto_start_machines = true
+auto_stop_machines = false
+min_machines_running = 1
+processes = ["app"]
+
+  [http_service.concurrency]
+  type = "connections"
+  soft_limit = 100
+  hard_limit = 200
+
+  [[http_service.checks]]
+  interval = "15s"
+  timeout = "2s"
+  method = "GET"
+  path = "/nginx/health"
+  protocol = "http"
+
+[[vm]]
+cpu_kind = "shared"
+cpus = 1
+memory = "256mb"
