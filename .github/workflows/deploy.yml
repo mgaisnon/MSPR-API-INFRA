@@ -4,6 +4,8 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  env :
+    FLY_API_TOKEN: "fm2_lJPECAAAAAAACfFZxBAS3nWWcbdLGvzdSJYgbOCbwrVodHRwczovL2FwaS5mbHkuaW8vdjGUAJLOABMryx8Lk7lodHRwczovL2FwaS5mbHkuaW8vYWFhL3YxxDzKPld+9Ad7zBPrheJ6dmoKZX7cga3FjtEmOHj7uB/w0d1PWdwWFotzRKzOCvD78mntt5K3a76pXtODeb/ETlhE2pfl/+dZ8Ek30mJY/wuRqdb46tO+zBTo2orlESwNOPBzVkfu3e29PptNzJC3TjM6UQ7s7p26KDhAbfm/KhmUmi/ZkrwWBjp3MU3RX8QgRPmz/h/ZKL4N2ofU0WxITKntm5+wn3BLgySGcu6XSQ0=,fm2_lJPETlhE2pfl/+dZ8Ek30mJY/wuRqdb46tO+zBTo2orlESwNOPBzVkfu3e29PptNzJC3TjM6UQ7s7p26KDhAbfm/KhmUmi/ZkrwWBjp3MU3RX8QQl/cd45J/4WOJqEQXecAKtMO5aHR0cHM6Ly9hcGkuZmx5LmlvL2FhYS92MZYEks5otdJczmi11NIXzgASbNgKkc4AEmzYxCACfpgnnAcw1e+0JSiF4ZvwY6mSjrbrAwkdZTNXTVxjmw==,fo1_LXtRSvXqZXxA2-AGlRSW47qOCXiUZsLaxKrUp-pPnmU"
 
 jobs:
   start:
@@ -81,7 +83,7 @@ jobs:
           echo "${HOME}/.fly/bin" >> $GITHUB_PATH
 
       - name: Fly.io auth
-        run: flyctl auth token ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl auth token ${{ env.FLY_API_TOKEN }}
 
       # Déploiement des services d'infra uniquement
       - name: Deploy RabbitMQ
