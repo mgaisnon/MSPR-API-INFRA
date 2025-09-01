@@ -2,6 +2,7 @@ app = "paye-ton-kawa"
 primary_region = "cdg"
 
 [build]
+  image = "nginx:alpine"
 
 [http_service]
   internal_port = 80
