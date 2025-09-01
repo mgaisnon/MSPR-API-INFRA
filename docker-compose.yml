@@ -19,7 +19,6 @@ services:
       - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
 
-  # Message Broker: RabbitMQ
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq
@@ -45,7 +44,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # DB pour Clients
   db-clients:
     image: postgres:16
     container_name: db-clients
@@ -65,8 +63,8 @@ services:
       timeout: 5s
       retries: 10
 
-  # API Clients
   api-clients:
+    container_name: api-clients
     image: ${IMG_API_CLIENTS:?set IMG_API_CLIENTS}
     environment:
       DATABASE_URL: ${DATABASE_URL_CLIENTS}
@@ -81,7 +79,6 @@ services:
       - "traefik.http.routers.api-clients.rule=Host(`clients.localhost`)"
       - "traefik.http.services.api-clients.loadbalancer.server.port=8000"
 
-  # DB pour Produits
   db-produits:
     image: postgres:16
     container_name: db-produits
@@ -101,8 +98,8 @@ services:
       timeout: 5s
       retries: 10
 
-  # API Produits
   api-produits:
+    container_name: api-produits
     image: ${IMG_API_PRODUITS:?set IMG_API_PRODUITS}
     environment:
       DATABASE_URL: ${DATABASE_URL_PRODUITS}
@@ -136,8 +133,8 @@ services:
       timeout: 5s
       retries: 10
 
-  # API Commandes
   api-commandes:
+    container_name: api-commandes
     image: ${IMG_API_COMMANDES:?set IMG_API_COMMANDES}
     environment:
       DATABASE_URL: ${DATABASE_URL_COMMANDES}
@@ -152,7 +149,6 @@ services:
       - "traefik.http.routers.api-commandes.rule=Host(`commandes.localhost`)"
       - "traefik.http.services.api-commandes.loadbalancer.server.port=8000"
 
-  # Prometheus
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -175,7 +171,6 @@ services:
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
-  # Grafana
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
