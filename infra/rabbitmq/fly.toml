@@ -2,16 +2,29 @@ app = "mspr-rabbitmq"
 primary_region = "cdg"
 
 [build]
+  image = "rabbitmq:3.13-management"
 
-[http_service]
-  internal_port = 15672
-  force_https = true
-  auto_stop_machines = false
-  auto_start_machines = true
-  min_machines_running = 1
+[env]
+  RABBITMQ_DEFAULT_USER = "guest"
+  RABBITMQ_DEFAULT_PASS = "guest"
+
+[[services]]
+  internal_port = 5672
   processes = ["app"]
+  protocol = "tcp"
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
 
-[[vm]]
-  memory = "1gb"
-  cpu_kind = "shared"
-  cpus = 1
+  [[services.ports]]
+    handlers = ["tls"]
+    port = 5672
+
+[[services]]
+  internal_port = 15672
+  processes = ["app"]
+  protocol = "tcp"
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80

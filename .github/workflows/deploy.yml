@@ -88,6 +88,9 @@ jobs:
       - name: Fly.io auth
         run: flyctl auth login --access-token "${FLY_API_TOKEN}"
 
+      - name: Deploy app
+        run: flyctl deploy --config infra/fly.toml --remote-only
+
       - name: Deploy RabbitMQ
         run: flyctl deploy --config infra/rabbitmq/fly.toml --remote-only
 
@@ -100,6 +103,7 @@ jobs:
       - name: Verify health (Infra + APIs)
         run: |
           endpoints=(
+            "https://paye-ton-kawa.fly.dev",
             "https://mspr-rabbitmq.fly.dev"
             "https://mspr-prometheus.fly.dev"
             "https://mspr-grafana.fly.dev/login"
