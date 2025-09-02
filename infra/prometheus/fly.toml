@@ -19,6 +19,10 @@ primary_region = 'cdg'
   auto_stop_machines = false
   auto_start_machines = true
   min_machines_running = 1
+  processes = ["app"]
+
+[processes]
+  app = "--config.file=/etc/prometheus/prometheus.yml --web.route-prefix=/prometheus --web.external-url=https://paye-ton-kawa.fly.dev/prometheus"
 
 [[vm]]
   memory = '1gb'

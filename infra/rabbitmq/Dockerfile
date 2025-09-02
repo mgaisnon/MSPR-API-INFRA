@@ -6,11 +6,8 @@ ENV RABBITMQ_DEFAULT_USER=mspr \
     RABBITMQ_DEFAULT_PASS=msprpass
 
 # (Optionnel) Copie d'un fichier de configuration custom si tu veux affiner RabbitMQ
-# COPY rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
+COPY rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
 
-# Expose les ports nécessaires
-# 5672 = AMQP
-# 15672 = Dashboard web
 EXPOSE 5672 15672
 
 # Commande de démarrage par défaut

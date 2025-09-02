@@ -8,6 +8,8 @@ server {
   server_name _;
   default_type text/plain;
 
+  location = /{ return 200 "Paye ton kawa\n"; }
+
   # Health Fly
   location = /nginx/health { return 200 "ok\n"; }
 
