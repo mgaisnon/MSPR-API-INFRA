@@ -8,14 +8,6 @@ dockerfile = "Dockerfile"
 # DNS interne Fly
 NGINX_RESOLVER = "[fdaa::3]:53"
 
-# Hôtes internes + ports des microservices
-CLIENTS_HOST   = "mspr-api-clients.internal"
-CLIENTS_PORT   = "8080"
-PRODUITS_HOST  = "mspr-api-produits.internal"
-PRODUITS_PORT  = "8080"
-COMMANDES_HOST = "mspr-api-commandes.internal"
-COMMANDES_PORT = "8080"
-
 [http_service]
 internal_port = 80
 force_https = true

@@ -1,39 +1,78 @@
-resolver ${NGINX_RESOLVER} valid=10s;
+# Inclus dans http {} via conf.d/*.conf
 
+resolver ${NGINX_RESOLVER} valid=10s ipv6=on;
 map $http_upgrade $connection_upgrade { default upgrade; '' close; }
 
 server {
   listen 80;
   server_name _;
+  default_type text/plain;
 
-  # Health Nginx (pour checks Fly)
-  location = /nginx/health { return 200 'ok'; add_header Content-Type text/plain; }
+  # Health Fly
+  location = /nginx/health { return 200 "ok\n"; }
 
-  # Rediriger les URLs sans slash final
-  location = /api/clients   { return 301 /api/clients/; }
-  location = /api/produits  { return 301 /api/produits/; }
+  # ---------- CLIENTS ----------
+  location = /api/clients { return 301 /api/clients/; }
+  location /api/clients/ {
+    proxy_pass https://mspr-api-clients.fly.dev/;
+    proxy_ssl_server_name on;
+    proxy_set_header Host mspr-api-clients.fly.dev;
+
+    proxy_set_header X-Forwarded-Prefix /api/clients;
+    proxy_set_header X-Forwarded-Proto  $scheme;
+    proxy_set_header X-Forwarded-Host   $host;
+    proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
+
+    # Un seul proxy_redirect qui gère à la fois absolu et "chemin absolu"
+    # - Absolu:   Location: https://mspr-api-clients.fly.dev/xxx  -> /api/clients/xxx
+    # - Chemin:   Location: /xxx                                   -> /api/clients/xxx
+    proxy_redirect ~^https?://[^/]+(/.*)$ /api/clients$1;
+
+    # Si l'API pose des cookies Path=/, on les confine au préfixe
+    proxy_cookie_path / /api/clients/;
+
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade    $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  }
+
+  # ---------- PRODUITS ----------
+  location = /api/produits { return 301 /api/produits/; }
+  location /api/produits/ {
+    proxy_pass https://mspr-api-produits.fly.dev/;
+    proxy_ssl_server_name on;
+    proxy_set_header Host mspr-api-produits.fly.dev;
+
+    proxy_set_header X-Forwarded-Prefix /api/produits;
+    proxy_set_header X-Forwarded-Proto  $scheme;
+    proxy_set_header X-Forwarded-Host   $host;
+    proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
+
+    proxy_redirect ~^https?://[^/]+(/.*)$ /api/produits$1;
+    proxy_cookie_path / /api/produits/;
+
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade    $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  }
+
+  # ---------- COMMANDES ----------
   location = /api/commandes { return 301 /api/commandes/; }
+  location /api/commandes/ {
+    proxy_pass https://mspr-api-commandes.fly.dev/;
+    proxy_ssl_server_name on;
+    proxy_set_header Host mspr-api-commandes.fly.dev;
 
-  # Proxy (strip du préfixe grâce au / final)
-  location /api/clients/   { proxy_pass http://${CLIENTS_HOST}:${CLIENTS_PORT}/; }
-  location /api/produits/  { proxy_pass http://${PRODUITS_HOST}:${PRODUITS_PORT}/; }
-  location /api/commandes/ { proxy_pass http://${COMMANDES_HOST}:${COMMANDES_PORT}/; }
+    proxy_set_header X-Forwarded-Prefix /api/commandes;
+    proxy_set_header X-Forwarded-Proto  $scheme;
+    proxy_set_header X-Forwarded-Host   $host;
+    proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
 
-  # (option) santé synthétique qui tape /
-  location /api/clients/health   { proxy_pass http://${CLIENTS_HOST}:${CLIENTS_PORT}/; }
-  location /api/produits/health  { proxy_pass http://${PRODUITS_HOST}:${PRODUITS_PORT}/; }
-  location /api/commandes/health { proxy_pass http://${COMMANDES_HOST}:${COMMANDES_PORT}/; }
+    proxy_redirect ~^https?://[^/]+(/.*)$ /api/commandes$1;
+    proxy_cookie_path / /api/commandes/;
 
-  # Headers + timeouts
-  proxy_set_header Host              $host;
-  proxy_set_header X-Real-IP         $remote_addr;
-  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-  proxy_set_header X-Forwarded-Proto $scheme;
-  proxy_http_version 1.1;
-  proxy_set_header Upgrade           $http_upgrade;
-  proxy_set_header Connection        $connection_upgrade;
-
-  proxy_connect_timeout 2s;
-  proxy_send_timeout    15s;
-  proxy_read_timeout    15s;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade    $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  }
 }
